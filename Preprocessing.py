@@ -54,5 +54,5 @@ def handle_dates(dataframe, fieldName):
             weekday = lambda x: x < 5
             dataframe[fieldName + '_weekday'] = weekday(getattr(data.dt, label))
 
-    dataframe[fieldName + '_elapsed_days'] = (data - data.min())
+    dataframe[fieldName + '_elapsed_days'] = (data - data.min()).dt.days
     dataframe.drop(fieldName, axis=1, inplace=True)
