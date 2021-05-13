@@ -48,6 +48,7 @@ class DecisionTree():
             leftSTD = std_agg(leftCount, leftSum, leftSumSquared)
             rightSTD = std_agg(rightCount, rightSum, rightSumSquared)
             curr_score = leftSTD * leftCount + rightSTD * rightCount
+            
             if curr_score < self.score:
                 self.column, self.score, self.splitValue = var_idx, curr_score, xi
 
