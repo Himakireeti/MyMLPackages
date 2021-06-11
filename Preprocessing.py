@@ -22,12 +22,16 @@ def change_to_categories_test(dataframe1, dataframe2):
 
 def numericalise_categories(df, max_n_cat):
     for col_name, _ in df.items():
-        if not pd.api.types.is_numeric_dtype(df[col_name]) and (
-                max_n_cat is None or len(df[col_name].cat.categories) > max_n_cat):
-            df[col_name] = pd.Categorical(df[col_name]).codes + 1
-        elif not pd.api.types.is_numeric_dtype(df[col_name]) and (len(df[col_name].cat.categories) < max_n_cat):
-            pd.get_dummies(df[col_name])
-
+        #print(col_name)
+        if not pd.api.types.is_numeric_dtype(df[col_name]) and not pd.api.types.is_string_dtype(df[col_name]):
+            if (max_n_cat is None or len(df[col_name].cat.categories) > max_n_cat) :
+                df[col_name] = pd.Categorical(df[col_name]).codes + 1
+            elif not pd.api.types.is_numeric_dtype(df[col_name]) and (len(df[col_name].cat.categories) < max_n_cat):
+                print(col_name)
+                df = pd.concat([df, pd.get_dummies(df[col_name])], axis =1)
+                df.drop([col_name], axis =1, inplace= True)
+    
+    return df
 
 """Handling null values"""
 
@@ -59,33 +63,41 @@ def scale_numericals_train(dataframe, scaler_name='RobustScaler', cols=None):
     scaler_module = __import__('sklearn.preprocessing', fromlist=scaler_name)
 
     columns_scaler = {}
-    for labels, content in dataframe.items() and cols == None:
-        scaler = getattr(scaler_module, scaler_name)()
-        if pd.api.types.is_float_dtype(dataframe[labels]) or pd.api.types.is_int64_dtype(dataframe[labels]):
-            dataframe[labels] = content.fillna(content.median())
-            dataframe[labels] = scaler.fit_transform(content.to_numpy().reshape(-1, 1))
-            columns_scaler[labels] = scaler
-        elif cols:
-            for labels, content in dataframe[cols].items():
-                if pd.api.types.is_float_dtype(dataframe[labels]) or pd.api.types.is_int64_dtype(dataframe[labels]):
-                    dataframe[labels] = content.fillna(content.median())
-                    dataframe[labels] = scaler.fit_transform(content.to_numpy().reshape(-1, 1))
-                    columns_scaler[labels] = scaler
+    if cols == None:
+        for labels, content in dataframe.items():
+            scaler = getattr(scaler_module, str(scaler_name))()
+            if pd.api.types.is_float_dtype(dataframe[labels]) or pd.api.types.is_int64_dtype(dataframe[labels]):
+                dataframe[labels] = content.fillna(content.median())
+                dataframe[labels] = scaler.fit_transform(content.to_numpy().reshape(-1, 1))
+                columns_scaler[labels] = scaler
+    else:
+        for labels, content in dataframe[cols].items():
+            scaler = getattr(scaler_module, str(scaler_name))()
+            if pd.api.types.is_float_dtype(dataframe[labels]) or pd.api.types.is_int64_dtype(dataframe[labels]):
+                dataframe[labels] = content.fillna(content.median())
+                dataframe[labels] = scaler.fit_transform(content.to_numpy().reshape(-1, 1))
+                columns_scaler[labels] = scaler
 
         return columns_scaler
 
 
-def scale_numericals_test(dataframe, columns_scaler, cols=None):
+def scale_numericals_test(dataframe1, columns_scaler, cols=None):
     try:
-        for labels, content in dataframe.items() and (not cols):
-            if pd.api.types.is_float_dtype(dataframe[labels]) or pd.api.types.is_int64_dtype(dataframe[labels]):
+        if cols is not None:
+            dataframe = dataframe1[cols]
+            
+        for labels, content in dataframe.items():
+            if pd.api.types.is_float_dtype(dataframe[labels]) or pd.api.types.is_int64_dtype(dataframe[labels]) and cols == None:
                 dataframe[labels] = columns_scaler[labels].transform(content.to_numpy().reshape(-1, 1))
             elif cols:
-                for labels, content in dataframe[cols].items():
+                for labels, content in dataframe.items():
                     if pd.api.types.is_float_dtype(dataframe[labels]) or pd.api.types.is_int64_dtype(dataframe[labels]):
                         dataframe[labels] = columns_scaler[labels].transform(content.to_numpy().reshape(-1, 1))
+        
+        dataframe1[cols] = dataframe[cols]
     except:
-        print(f'{labels} not found in given scaler')
+        print(f'{labels} error here')
+
 
 
 """Handling dates"""
